@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wedding App MVP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Wedding App</h1>
+    <button id="btnLogout" class="hidden">Logout</button>
+  </header>
+
+  <main class="container">
+    <section id="screenLoading" class="card">טוען…</section>
+
+    <section id="screenAuth" class="card hidden">
+      <h2>התחברות / הרשמה</h2>
+      <p class="muted">מייל + סיסמה (ל-MVP)</p>
+
+      <label>אימייל</label>
+      <input id="email" type="email" placeholder="name@example.com" />
+
+      <label>סיסמה</label>
+      <input id="password" type="password" placeholder="••••••••" />
+
+      <div class="row">
+        <button id="btnSignUp">הרשמה</button>
+        <button id="btnSignIn" class="secondary">התחברות</button>
+      </div>
+
+      <p id="authMsg" class="msg"></p>
+    </section>
+
+    <section id="screenApp" class="card hidden">
+      <h2>מחובר/ת 🎉</h2>
+      <p>כאן ייכנס מסך האירוע שלך + הזמנה לבן/בת זוג.</p>
+      <pre id="debug"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
