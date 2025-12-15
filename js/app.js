@@ -34,13 +34,18 @@ function wireUI() {
     }
   };
 
+
   btnSignOut.onclick = async () => {
     try {
-      await signOut();
-      showMsg("התנתקת", "ok");
+      console.log("SIGNOUT CLICKED");
+      await supabase.auth.signOut();
+      console.log("SIGNED OUT OK");
+
+      // לכפות רענון כדי שלא ישאר UI ישן
+      location.reload();
     } catch (e) {
+      console.error("SIGNOUT FAILED:", e);
       showMsg(e.message || String(e), "err");
-      console.error(e);
     }
   };
 
