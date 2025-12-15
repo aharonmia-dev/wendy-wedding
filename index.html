@@ -1,45 +1,68 @@
 <!doctype html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wedding App MVP</title>
+  <title>Wendy – Event</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <header class="topbar">
-    <h1>Wedding App</h1>
-    <button id="btnLogout" class="hidden">Logout</button>
-  </header>
+  <div class="wrap">
+    <header class="card">
+      <h1>האפליקציה</h1>
+      <p class="muted">הרשמה / התחברות + הזמנה לבן/בת זוג לאותו אירוע</p>
+      <div id="msg" class="msg"></div>
+    </header>
 
-  <main class="container">
-    <section id="screenLoading" class="card">טוען…</section>
-
-    <section id="screenAuth" class="card hidden">
-      <h2>התחברות / הרשמה</h2>
-      <p class="muted">מייל + סיסמה (ל-MVP)</p>
+    <section id="authCard" class="card">
+      <h2>התחברות</h2>
 
       <label>אימייל</label>
-      <input id="email" type="email" placeholder="name@example.com" />
+      <input id="email" type="email" placeholder="name@email.com" />
 
       <label>סיסמה</label>
       <input id="password" type="password" placeholder="••••••••" />
 
       <div class="row">
         <button id="btnSignUp">הרשמה</button>
-        <button id="btnSignIn" class="secondary">התחברות</button>
+        <button id="btnSignIn" class="primary">התחברות</button>
       </div>
 
-      <p id="authMsg" class="msg"></p>
+      <p class="muted small">
+        טיפ: כדי לבדוק הזמנה, פתחי חלון אינקוגניטו והתחברי עם משתמש אחר.
+      </p>
     </section>
 
-    <section id="screenApp" class="card hidden">
-      <h2>מחובר/ת 🎉</h2>
-      <p>כאן ייכנס מסך האירוע שלך + הזמנה לבן/בת זוג.</p>
-      <pre id="debug"></pre>
-    </section>
-  </main>
+    <section id="appCard" class="card hidden">
+      <div class="row space">
+        <div>
+          <h2>מחוברת ✅</h2>
+          <div class="muted small" id="userLine"></div>
+        </div>
+        <button id="btnSignOut" class="ghost">התנתקות</button>
+      </div>
 
-  <script type="module" src="app.js"></script>
+      <hr />
+
+      <h3>האירוע שלי</h3>
+      <div class="muted small" id="eventLine">טוען…</div>
+
+      <div class="row">
+        <button id="btnInvite" class="primary">צור לינק הזמנה לבן/בת זוג</button>
+        <button id="btnCopy" class="ghost hidden">העתקה</button>
+      </div>
+
+      <input id="inviteLink" class="hidden" readonly />
+
+      <hr />
+
+      <h3>חברי אירוע</h3>
+      <div id="members" class="list"></div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 </body>
 </html>
