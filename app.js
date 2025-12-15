@@ -1,49 +1,79 @@
-
-
-
-
-
 // =====================
 // CONFIG
 // =====================
 const SUPABASE_URL = "https://ldprdewokkxrwxgxojrs.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcHJkZXdva2t4cnd4Z3hvanJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDQwODQsImV4cCI6MjA4MTI4MDA4NH0.kN3_qfUhvwnRVDsMuaWvTKfTE9uBWtCBh--6dBnTgdM";
 
+if (!window.supabase) {
+  console.error("❌ Supabase SDK not loaded. Check index.html script tag.");
+}
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true } // נשמר ב-localStorage, לא צריך להתחבר כל פעם
+  auth: { persistSession: true } // remember login
 });
 
+// =====================
+// DOM helpers
+// =====================
 const el = (id) => document.getElementById(id);
 
 function showMsg(text, type = "ok") {
   const box = el("msg");
+  if (!box) return alert(text);
   box.className = `msg ${type}`;
   box.textContent = text;
 }
 
 function clearMsg() {
   const box = el("msg");
+  if (!box) return;
   box.className = "msg";
   box.textContent = "";
 }
 
-function getInviteToken() {
+function setLoggedInUI(isLoggedIn) {
+  const a = el("authCard");
+  const b = el("appCard");
+  if (a) a.classList.toggle("hidden", isLoggedIn);
+  if (b) b.classList.toggle("hidden", !isLoggedIn);
+}
+
+function getInviteTokenFromUrl() {
   return new URL(window.location.href).searchParams.get("invite");
 }
 
-function setLoggedInUI(isLoggedIn) {
-  el("authCard").classList.toggle("hidden", isLoggedIn);
-  el("appCard").classList.toggle("hidden", !isLoggedIn);
+function removeInviteFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("invite");
+  window.history.replaceState({}, "", url.toString());
 }
 
-async function getUser() {
-  const { data } = await supabase.auth.getUser();
-  return data.user;
+// אם נכנסו עם invite אבל המשתמש עוד לא מחובר – נשמור את זה זמנית
+const INVITE_STORAGE_KEY = "pending_invite_token";
+
+function stashInviteTokenIfExists() {
+  const t = getInviteTokenFromUrl();
+  if (t) {
+    sessionStorage.setItem(INVITE_STORAGE_KEY, t);
+    removeInviteFromUrl();
+  }
+}
+
+function popStashedInviteToken() {
+  const t = sessionStorage.getItem(INVITE_STORAGE_KEY);
+  if (t) sessionStorage.removeItem(INVITE_STORAGE_KEY);
+  return t;
 }
 
 // =====================
 // AUTH
 // =====================
+async function getUser() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) console.warn("getUser error:", error);
+  return data?.user ?? null;
+}
+
 async function signUp(email, password) {
   clearMsg();
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -71,7 +101,6 @@ async function signOut() {
 // invites: id, event_id, token(text), created_by, accepted_by, accepted_at, created_at
 // =====================
 async function ensureMyEvent(userId) {
-  // 1) האם כבר קיים אירוע שיצרתי?
   const { data: events, error: selErr } = await supabase
     .from("events")
     .select("id,title,created_at")
@@ -82,17 +111,15 @@ async function ensureMyEvent(userId) {
   if (selErr) throw selErr;
 
   if (events?.length) {
-    // לוודא שאני חבר/ה באירוע
-    await supabase.from("event_members").upsert([{
-      event_id: events[0].id,
-      user_id: userId,
-      role: "owner"
-    }], { onConflict: "event_id,user_id" });
-
+    // לוודא חברות
+    await supabase.from("event_members").upsert(
+      [{ event_id: events[0].id, user_id: userId, role: "owner" }],
+      { onConflict: "event_id,user_id" }
+    );
     return events[0];
   }
 
-  // 2) ליצור אירוע חדש
+  // ליצור אירוע
   const { data: created, error: insErr } = await supabase
     .from("events")
     .insert([{ created_by: userId, title: "Our Wedding" }])
@@ -101,7 +128,7 @@ async function ensureMyEvent(userId) {
 
   if (insErr) throw insErr;
 
-  // 3) להוסיף owner כחבר
+  // להוסיף owner כחבר
   const { error: memErr } = await supabase.from("event_members").insert([{
     event_id: created.id,
     user_id: userId,
@@ -113,15 +140,13 @@ async function ensureMyEvent(userId) {
 }
 
 async function createInviteLink(eventId, userId) {
-  // token אצלך text -> נייצר UUID כטקסט
-  const token = crypto.randomUUID();
+  const token = crypto.randomUUID(); // token הוא text אצלך
 
   const { error } = await supabase.from("invites").insert([{
     event_id: eventId,
     token,
     created_by: userId
   }]);
-
   if (error) throw error;
 
   const base = window.location.origin + window.location.pathname;
@@ -129,7 +154,6 @@ async function createInviteLink(eventId, userId) {
 }
 
 async function redeemInvite(token, userId) {
-  // לקרוא את ההזמנה לפי token
   const { data: invite, error: selErr } = await supabase
     .from("invites")
     .select("id,event_id,accepted_at")
@@ -139,7 +163,7 @@ async function redeemInvite(token, userId) {
   if (selErr) throw selErr;
   if (invite.accepted_at) throw new Error("הלינק הזה כבר נוצל.");
 
-  // להוסיף את המשתמש/ת כחבר/ה באירוע (בלי כפילויות)
+  // להצטרף לאירוע
   const { error: joinErr } = await supabase.from("event_members").upsert([{
     event_id: invite.event_id,
     user_id: userId,
@@ -147,17 +171,12 @@ async function redeemInvite(token, userId) {
   }], { onConflict: "event_id,user_id" });
   if (joinErr) throw joinErr;
 
-  // לסמן accepted
+  // לסמן שהוזמן נוצל
   const { error: updErr } = await supabase.from("invites")
     .update({ accepted_by: userId, accepted_at: new Date().toISOString() })
     .eq("id", invite.id);
 
   if (updErr) throw updErr;
-
-  // לנקות את הפרמטר מה-URL
-  const url = new URL(window.location.href);
-  url.searchParams.delete("invite");
-  window.history.replaceState({}, "", url.toString());
 
   return invite.event_id;
 }
@@ -180,101 +199,148 @@ async function loadMembers(eventId) {
 // UI WIRING
 // =====================
 function wireUI() {
-  el("btnSignUp").onclick = async () => {
-    try {
-      const email = el("email").value.trim();
-      const password = el("password").value;
-      if (!email || !password) return showMsg("נא למלא אימייל וסיסמה", "err");
-      await signUp(email, password);
-      showMsg("נרשמת ✅ אם את כבר מחוברת תראי את האפליקציה מיד.", "ok");
-    } catch (e) {
-      showMsg(e.message || String(e), "err");
-    }
-  };
+  const btnSignUp = el("btnSignUp");
+  const btnSignIn = el("btnSignIn");
+  const btnSignOut = el("btnSignOut");
+  const btnInvite = el("btnInvite");
+  const btnCopy = el("btnCopy");
 
-  el("btnSignIn").onclick = async () => {
-    try {
-      const email = el("email").value.trim();
-      const password = el("password").value;
-      if (!email || !password) return showMsg("נא למלא אימייל וסיסמה", "err");
-      await signIn(email, password);
-      showMsg("התחברת ✅", "ok");
-    } catch (e) {
-      showMsg(e.message || String(e), "err");
-    }
-  };
-
-  el("btnSignOut").onclick = async () => {
-    try {
-      await signOut();
-      showMsg("התנתקת", "ok");
-    } catch (e) {
-      showMsg(e.message || String(e), "err");
-    }
-  };
-
-  el("btnCopy").onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(el("inviteLink").value);
-      showMsg("הועתק ✅", "ok");
-    } catch {
-      showMsg("לא הצלחתי להעתיק. תעתיקי ידנית מהשדה.", "err");
-    }
-  };
-}
-
-async function refreshApp() {
-  const user = await getUser();
-
-  if (!user) {
-    setLoggedInUI(false);
+  if (!btnSignUp || !btnSignIn) {
+    console.error("❌ Missing auth button IDs in HTML (btnSignUp/btnSignIn).");
     return;
   }
 
-  setLoggedInUI(true);
-  el("userLine").textContent = user.email ? `אימייל: ${user.email}` : `User: ${user.id}`;
-
-  // אם נכנסו עם invite=... אז ננסה לרידם אחרי שיש user
-  const token = getInviteToken();
-  if (token) {
+  btnSignUp.onclick = async () => {
     try {
-      await redeemInvite(token, user.id);
-      showMsg("הצטרפת לאירוע דרך הזמנה ✅", "ok");
+      const email = el("email").value.trim();
+      const password = el("password").value;
+      if (!email || !password) return showMsg("נא למלא אימייל וסיסמה", "err");
+
+      await signUp(email, password);
+      showMsg("נרשמת ✅ עכשיו התחברי (או אם נוצר סשן – תראי מעבר אוטומטי).", "ok");
+      // לפעמים signUp לא מחבר מיד, לכן לא מכריחים UI כאן
     } catch (e) {
       showMsg(e.message || String(e), "err");
-    }
-  }
-
-  // לוודא שיש לי אירוע (או ליצור)
-  const event = await ensureMyEvent(user.id);
-  el("eventLine").textContent = `Event ID: ${event.id} · ${event.title}`;
-
-  // כפתור יצירת לינק
-  el("btnInvite").onclick = async () => {
-    try {
-      const link = await createInviteLink(event.id, user.id);
-      el("inviteLink").classList.remove("hidden");
-      el("inviteLink").value = link;
-      el("btnCopy").classList.remove("hidden");
-      showMsg("לינק הזמנה נוצר ✅", "ok");
-    } catch (e) {
-      showMsg(e.message || String(e), "err");
+      console.error(e);
     }
   };
 
-  // להציג חברים
-  await loadMembers(event.id);
+  btnSignIn.onclick = async () => {
+    try {
+      const email = el("email").value.trim();
+      const password = el("password").value;
+      if (!email || !password) return showMsg("נא למלא אימייל וסיסמה", "err");
+
+      await signIn(email, password);
+      showMsg("התחברת ✅", "ok");
+      // onAuthStateChange יטפל ברענון
+    } catch (e) {
+      showMsg(e.message || String(e), "err");
+      console.error(e);
+    }
+  };
+
+  if (btnSignOut) {
+    btnSignOut.onclick = async () => {
+      try {
+        await signOut();
+        showMsg("התנתקת", "ok");
+      } catch (e) {
+        showMsg(e.message || String(e), "err");
+        console.error(e);
+      }
+    };
+  }
+
+  if (btnCopy) {
+    btnCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(el("inviteLink").value);
+        showMsg("הועתק ✅", "ok");
+      } catch (e) {
+        showMsg("לא הצלחתי להעתיק. תעתיקי ידנית מהשדה.", "err");
+        console.error(e);
+      }
+    };
+  }
+
+  // btnInvite מוגדר בתוך refreshApp כי הוא צריך eventId
 }
 
 // =====================
-// BOOT
+// APP STATE
 // =====================
-wireUI();
+let refreshing = false;
 
-// רינדור ראשוני לפי session שנשמר
-refreshApp();
+async function refreshApp() {
+  if (refreshing) return;
+  refreshing = true;
 
-// כל שינוי סשן (login/logout) מרענן UI
-supabase.auth.onAuthStateChange(() => {
+  try {
+    const user = await getUser();
+
+    if (!user) {
+      setLoggedInUI(false);
+      refreshing = false;
+      return;
+    }
+
+    setLoggedInUI(true);
+    el("userLine").textContent = user.email ? `אימייל: ${user.email}` : `User: ${user.id}`;
+
+    // אם יש הזמנה שמורה (מה-URL לפני login) – רידם עכשיו
+    const pendingToken = popStashedInviteToken();
+    if (pendingToken) {
+      try {
+        await redeemInvite(pendingToken, user.id);
+        showMsg("הצטרפת לאירוע דרך הזמנה ✅", "ok");
+      } catch (e) {
+        showMsg(e.message || String(e), "err");
+        console.error(e);
+      }
+    }
+
+    // לוודא שיש אירוע
+    const event = await ensureMyEvent(user.id);
+    el("eventLine").textContent = `Event ID: ${event.id} · ${event.title}`;
+
+    // כפתור הזמנה
+    const btnInvite = el("btnInvite");
+    btnInvite.onclick = async () => {
+      try {
+        const link = await createInviteLink(event.id, user.id);
+        el("inviteLink").classList.remove("hidden");
+        el("inviteLink").value = link;
+        el("btnCopy").classList.remove("hidden");
+        showMsg("לינק הזמנה נוצר ✅", "ok");
+      } catch (e) {
+        showMsg(e.message || String(e), "err");
+        console.error(e);
+      }
+    };
+
+    await loadMembers(event.id);
+  } catch (e) {
+    console.error("refreshApp fatal:", e);
+    showMsg(e.message || String(e), "err");
+  } finally {
+    refreshing = false;
+  }
+}
+
+// =====================
+// BOOT (DOM safe) + INVITE stash
+// =====================
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ DOMContentLoaded - booting app.js");
+
+  // אם נכנסו עם invite=... לפני login, נשמור אותו ואז נסיר מה-URL
+  stashInviteTokenIfExists();
+
+  wireUI();
   refreshApp();
+
+  supabase.auth.onAuthStateChange(() => {
+    refreshApp();
+  });
 });
