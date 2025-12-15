@@ -2,14 +2,15 @@
 // CONFIG
 // =====================
 const SUPABASE_URL = "https://ldprdewokkxrwxgxojrs.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcHJkZXdva2t4cnd4Z3hvanJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDQwODQsImV4cCI6MjA4MTI4MDA4NH0.kN3_qfUhvwnRVDsMuaWvTKfTE9uBWtCBh--6dBnTgdM";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcHJkZXdva2t4cnd4Z3hvanJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDQwODQsImV4cCI6MjA4MTI4MDA4NH0.kN3_qfUhvwnRVDsMuaWvTKfTE9uBWtCBh--6dBnTgdM";
 
 if (!window.supabase) {
   console.error("❌ Supabase SDK not loaded. Check index.html script tag.");
 }
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true } // remember login
+  auth: { persistSession: true }, // remember login
 });
 
 // =====================
@@ -100,26 +101,36 @@ async function signOut() {
 // event_members: event_id, user_id, role, created_at
 // invites: id, event_id, token(text), created_by, accepted_by, accepted_at, created_at
 // =====================
+
+// ✅ התיקון הקריטי:
+// קודם בודקים אם המשתמש חבר באירוע כלשהו דרך event_members.
+// רק אם אין לו אירוע – יוצרים אחד חדש ומוסיפים אותו כ-owner.
 async function ensureMyEvent(userId) {
-  const { data: events, error: selErr } = await supabase
-    .from("events")
-    .select("id,title,created_at")
-    .eq("created_by", userId)
+  // 1) האם המשתמש כבר חבר באירוע?
+  const { data: mem, error: memErr } = await supabase
+    .from("event_members")
+    .select("event_id, role, created_at")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if (selErr) throw selErr;
+  if (memErr) throw memErr;
 
-  if (events?.length) {
-    // לוודא חברות
-    await supabase.from("event_members").upsert(
-      [{ event_id: events[0].id, user_id: userId, role: "owner" }],
-      { onConflict: "event_id,user_id" }
-    );
-    return events[0];
+  if (mem?.length) {
+    const eventId = mem[0].event_id;
+
+    // להביא את פרטי האירוע
+    const { data: ev, error: evErr } = await supabase
+      .from("events")
+      .select("id,title,created_at")
+      .eq("id", eventId)
+      .single();
+
+    if (evErr) throw evErr;
+    return ev;
   }
 
-  // ליצור אירוע
+  // 2) אם אין חברות באף אירוע — יוצרים אירוע חדש
   const { data: created, error: insErr } = await supabase
     .from("events")
     .insert([{ created_by: userId, title: "Our Wedding" }])
@@ -128,13 +139,16 @@ async function ensureMyEvent(userId) {
 
   if (insErr) throw insErr;
 
-  // להוסיף owner כחבר
-  const { error: memErr } = await supabase.from("event_members").insert([{
-    event_id: created.id,
-    user_id: userId,
-    role: "owner"
-  }]);
-  if (memErr) throw memErr;
+  // 3) מוסיפים את המשתמש כ-owner
+  const { error: memInsErr } = await supabase.from("event_members").insert([
+    {
+      event_id: created.id,
+      user_id: userId,
+      role: "owner",
+    },
+  ]);
+
+  if (memInsErr) throw memInsErr;
 
   return created;
 }
@@ -142,11 +156,13 @@ async function ensureMyEvent(userId) {
 async function createInviteLink(eventId, userId) {
   const token = crypto.randomUUID(); // token הוא text אצלך
 
-  const { error } = await supabase.from("invites").insert([{
-    event_id: eventId,
-    token,
-    created_by: userId
-  }]);
+  const { error } = await supabase.from("invites").insert([
+    {
+      event_id: eventId,
+      token,
+      created_by: userId,
+    },
+  ]);
   if (error) throw error;
 
   const base = window.location.origin + window.location.pathname;
@@ -163,16 +179,22 @@ async function redeemInvite(token, userId) {
   if (selErr) throw selErr;
   if (invite.accepted_at) throw new Error("הלינק הזה כבר נוצל.");
 
-  // להצטרף לאירוע
-  const { error: joinErr } = await supabase.from("event_members").upsert([{
-    event_id: invite.event_id,
-    user_id: userId,
-    role: "partner"
-  }], { onConflict: "event_id,user_id" });
+  // להצטרף לאירוע (בלי כפילויות)
+  const { error: joinErr } = await supabase.from("event_members").upsert(
+    [
+      {
+        event_id: invite.event_id,
+        user_id: userId,
+        role: "partner",
+      },
+    ],
+    { onConflict: "event_id,user_id" }
+  );
   if (joinErr) throw joinErr;
 
-  // לסמן שהוזמן נוצל
-  const { error: updErr } = await supabase.from("invites")
+  // לסמן שההזמנה נוצלה
+  const { error: updErr } = await supabase
+    .from("invites")
     .update({ accepted_by: userId, accepted_at: new Date().toISOString() })
     .eq("id", invite.id);
 
@@ -190,9 +212,13 @@ async function loadMembers(eventId) {
 
   if (error) throw error;
 
-  el("members").innerHTML = (data || [])
-    .map(m => `<div class="item"><div><b>${m.role}</b></div><div class="muted small">${m.user_id}</div></div>`)
-    .join("") || `<div class="muted small">אין עדיין חברים</div>`;
+  el("members").innerHTML =
+    (data || [])
+      .map(
+        (m) =>
+          `<div class="item"><div><b>${m.role}</b></div><div class="muted small">${m.user_id}</div></div>`
+      )
+      .join("") || `<div class="muted small">אין עדיין חברים</div>`;
 }
 
 // =====================
@@ -202,7 +228,6 @@ function wireUI() {
   const btnSignUp = el("btnSignUp");
   const btnSignIn = el("btnSignIn");
   const btnSignOut = el("btnSignOut");
-  const btnInvite = el("btnInvite");
   const btnCopy = el("btnCopy");
 
   if (!btnSignUp || !btnSignIn) {
@@ -218,7 +243,6 @@ function wireUI() {
 
       await signUp(email, password);
       showMsg("נרשמת ✅ עכשיו התחברי (או אם נוצר סשן – תראי מעבר אוטומטי).", "ok");
-      // לפעמים signUp לא מחבר מיד, לכן לא מכריחים UI כאן
     } catch (e) {
       showMsg(e.message || String(e), "err");
       console.error(e);
@@ -233,7 +257,6 @@ function wireUI() {
 
       await signIn(email, password);
       showMsg("התחברת ✅", "ok");
-      // onAuthStateChange יטפל ברענון
     } catch (e) {
       showMsg(e.message || String(e), "err");
       console.error(e);
@@ -263,8 +286,6 @@ function wireUI() {
       }
     };
   }
-
-  // btnInvite מוגדר בתוך refreshApp כי הוא צריך eventId
 }
 
 // =====================
@@ -300,7 +321,7 @@ async function refreshApp() {
       }
     }
 
-    // לוודא שיש אירוע
+    // ✅ עכשיו ensureMyEvent יבחר אירוע לפי event_members
     const event = await ensureMyEvent(user.id);
     el("eventLine").textContent = `Event ID: ${event.id} · ${event.title}`;
 
