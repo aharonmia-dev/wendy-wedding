@@ -1,0 +1,576 @@
+/* css/global.css */
+/* עיצוב גלובלי + splash + לבבות */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --pink-primary: #ec4899;
+  --pink-dark: #be185d;
+  --purple-dark: #2d1b2f;
+  --gray-light: #f6f7fb;
+  --gray-medium: #6b7280;
+  --green-success: #10b981;
+  --blue-info: #3b82f6;
+  --red-error: #ef4444;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #ffffff;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.app-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
+/* ===============================
+   SCREENS (התחברות / אפליקציה)
+   =============================== */
+
+.screen {
+  min-height: 100vh;
+}
+
+.screen.hidden {
+  display: none;
+}
+
+/* ===============================
+   SPLASH + AUTH SCREEN
+   =============================== */
+
+#authScreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.splash-container {
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+/* השם wendy */
+.app-name {
+  font-family: cursive;
+  font-size: 10rem;
+  font-weight: bold;
+  color: var(--purple-dark);
+  font-style: italic;
+  letter-spacing: 0.15em;
+  animation: gentleFloat 6s ease-in-out infinite;
+  transform: rotate(-3deg);
+  text-shadow: 
+    3px 3px 8px rgba(45, 27, 47, 0.3),
+    1px 1px 0px #f8d7da,
+    2px 2px 0px #f5c2c7,
+    3px 3px 0px var(--pink-primary);
+  margin-bottom: 2rem;
+  transition: all 0.5s ease;
+}
+
+.app-name.compact {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  transform: rotate(-1deg);
+  animation: gentleFloatSmall 6s ease-in-out infinite;
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px) rotate(-3deg); }
+  50% { transform: translateY(-15px) rotate(-3deg); }
+}
+
+@keyframes gentleFloatSmall {
+  0%, 100% { transform: translateY(0px) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(-1deg); }
+}
+
+/* כותרת משנה */
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--gray-medium);
+  opacity: 0;
+  animation: fadeIn 1s ease 2s forwards;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  margin-bottom: 3rem;
+  transition: all 0.5s ease;
+}
+
+.subtitle.compact {
+  font-size: 1rem;
+  margin-bottom: 2rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* כפתור המשך */
+.continue-btn {
+  background: linear-gradient(135deg, var(--pink-primary) 0%, var(--pink-dark) 100%);
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.4s ease;
+  animation: fadeInUp 1s ease 3s forwards;
+  box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
+  margin-bottom: 2rem;
+}
+
+.continue-btn:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 15px 40px rgba(236, 72, 153, 0.4);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* טופס התחברות */
+.login-form {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2rem;
+  border-radius: 30px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  opacity: 0;
+  transform: translateY(30px) scale(0.9);
+  transition: all 0.6s ease;
+  display: none;
+}
+
+.login-form.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  display: block;
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+  text-align: right;
+}
+
+.input-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--purple-dark);
+  margin-bottom: 0.5rem;
+}
+
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 15px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--pink-primary);
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.form-btn {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 15px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-btn-primary {
+  background: linear-gradient(135deg, var(--pink-primary) 0%, var(--pink-dark) 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.3);
+}
+
+.form-btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(236, 72, 153, 0.4);
+}
+
+.form-btn-secondary {
+  background: white;
+  color: var(--purple-dark);
+  border: 2px solid #e5e7eb;
+}
+
+.form-btn-secondary:hover {
+  background: var(--gray-light);
+  border-color: var(--pink-primary);
+}
+
+.message-hint {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--gray-medium);
+  text-align: center;
+}
+
+/* הודעות */
+.msg {
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  display: none;
+  text-align: center;
+}
+
+.msg.ok {
+  display: block;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.msg.err {
+  display: block;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+/* ===============================
+   MAIN APP
+   =============================== */
+
+/* Header */
+.app-header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-logo {
+  font-family: cursive;
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--purple-dark);
+  font-style: italic;
+  text-shadow: 2px 2px 4px rgba(45, 27, 47, 0.2);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--gray-medium);
+}
+
+.btn-invite {
+  background: linear-gradient(135deg, var(--pink-primary) 0%, var(--pink-dark) 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-invite:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.3);
+}
+
+.btn-signout {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-signout:hover {
+  background: var(--red-error);
+  color: white;
+  border-color: var(--red-error);
+}
+
+/* Navigation */
+.main-nav {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.5rem 1rem;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  position: sticky;
+  top: 68px;
+  z-index: 99;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.nav-item:hover {
+  background: var(--gray-light);
+  border-color: var(--pink-primary);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, var(--pink-primary) 0%, var(--pink-dark) 100%);
+  color: white;
+  border-color: var(--pink-primary);
+}
+
+.nav-icon {
+  font-size: 1.3rem;
+}
+
+/* Main Content */
+.main-content {
+  min-height: calc(100vh - 136px);
+  padding: 1rem;
+  background: var(--gray-light);
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 25px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  color: var(--purple-dark);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.invite-link-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  background: var(--gray-light);
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* ===============================
+   HEARTS ANIMATION
+   =============================== */
+
+.heart {
+  position: fixed;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  z-index: 1;
+  animation: heartFall linear infinite;
+  top: -50px;
+}
+
+.heart::before,
+.heart::after {
+  content: '';
+  width: 12px;
+  height: 18px;
+  position: absolute;
+  left: 12px;
+  transform: rotate(-45deg);
+  transform-origin: 0 100%;
+  border-radius: 12px 12px 0 0;
+  background: currentColor;
+}
+
+.heart::after {
+  left: 0;
+  transform: rotate(45deg);
+  transform-origin: 100% 100%;
+}
+
+@keyframes heartFall {
+  0% {
+    opacity: 1;
+    transform: translateY(-50px) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(360deg);
+  }
+}
+
+/* גוונים שונים של לבבות */
+.heart-pink-light { color: #fce7f3; }
+.heart-pink { color: #f9a8d4; }
+.heart-pink-medium { color: #f472b6; }
+.heart-pink-dark { color: #ec4899; }
+.heart-rose { color: #fb7185; }
+.heart-red-light { color: #fca5a5; }
+.heart-red { color: #ef4444; }
+.heart-red-dark { color: #dc2626; }
+.heart-crimson { color: #be185d; }
+.heart-burgundy { color: #881337; }
+
+/* גדלים שונים */
+.heart-small {
+  width: 16px;
+  height: 16px;
+}
+
+.heart-small::before,
+.heart-small::after {
+  width: 8px;
+  height: 12px;
+  left: 8px;
+  border-radius: 8px 8px 0 0;
+}
+
+.heart-small::after {
+  left: 0;
+}
+
+.heart-medium {
+  width: 32px;
+  height: 32px;
+}
+
+.heart-medium::before,
+.heart-medium::after {
+  width: 16px;
+  height: 24px;
+  left: 16px;
+  border-radius: 16px 16px 0 0;
+}
+
+.heart-medium::after {
+  left: 0;
+}
+
+/* ===============================
+   RESPONSIVE
+   =============================== */
+
+@media (max-width: 768px) {
+  .app-name {
+    font-size: 5rem;
+  }
+
+  .app-name.compact {
+    font-size: 2.5rem;
+  }
+
+  .header-logo {
+    font-size: 1.5rem;
+  }
+
+  .header-user span {
+    display: none;
+  }
+
+  .nav-item {
+    padding: 0.5rem 1rem;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .nav-icon {
+    font-size: 1.5rem;
+  }
+
+  .main-content {
+    padding: 0.5rem;
+  }
+}

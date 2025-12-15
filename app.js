@@ -1,313 +1,251 @@
-// =====================
-// CONFIG
-// =====================
-const SUPABASE_URL = "https://ldprdewokkxrwxgxojrs.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcHJkZXdva2t4cnd4Z3hvanJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDQwODQsImV4cCI6MjA4MTI4MDA4NH0.kN3_qfUhvwnRVDsMuaWvTKfTE9uBWtCBh--6dBnTgdM";
+// js/app.js
+// מנהל את זרימת האפליקציה: התחברות → ניווט → מסכים
 
-if (!window.supabase) {
-  console.error("❌ Supabase SDK not loaded. Check index.html script tag.");
-}
+// ===============================
+// HEARTS ANIMATION (מהסplash)
+// ===============================
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true }, // remember login
-});
+const heartColors = [
+  'heart-pink-light', 'heart-pink', 'heart-pink-medium',
+  'heart-pink-dark', 'heart-rose', 'heart-red-light',
+  'heart-red', 'heart-red-dark', 'heart-crimson', 'heart-burgundy'
+];
 
-// =====================
-// DOM helpers
-// =====================
-const el = (id) => document.getElementById(id);
+const heartSizes = ['heart-small', 'heart', 'heart-medium'];
 
-function showMsg(text, type = "ok") {
-  const box = el("msg");
-  if (!box) return alert(text);
-  box.className = `msg ${type}`;
-  box.textContent = text;
-}
+function createHeart() {
+  const heart = document.createElement('div');
+  const colorClass = heartColors[Math.floor(Math.random() * heartColors.length)];
+  const sizeClass = heartSizes[Math.floor(Math.random() * heartSizes.length)];
 
-function clearMsg() {
-  const box = el("msg");
-  if (!box) return;
-  box.className = "msg";
-  box.textContent = "";
-}
+  heart.className = `heart ${colorClass} ${sizeClass}`;
+  heart.style.left = Math.random() * 100 + '%';
 
-function setLoggedInUI(isLoggedIn) {
-  const a = el("authCard");
-  const b = el("appCard");
-  if (a) a.classList.toggle("hidden", isLoggedIn);
-  if (b) b.classList.toggle("hidden", !isLoggedIn);
-}
+  const duration = Math.random() * 6 + 8;
+  heart.style.animationDuration = duration + 's';
+  heart.style.animationDelay = Math.random() * 3 + 's';
 
-function getInviteTokenFromUrl() {
-  return new URL(window.location.href).searchParams.get("invite");
-}
+  document.body.appendChild(heart);
 
-function removeInviteFromUrl() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("invite");
-  window.history.replaceState({}, "", url.toString());
-}
-
-// אם נכנסו עם invite אבל המשתמש עוד לא מחובר – נשמור את זה זמנית
-const INVITE_STORAGE_KEY = "pending_invite_token";
-
-function stashInviteTokenIfExists() {
-  const t = getInviteTokenFromUrl();
-  if (t) {
-    sessionStorage.setItem(INVITE_STORAGE_KEY, t);
-    removeInviteFromUrl();
-  }
-}
-
-function popStashedInviteToken() {
-  const t = sessionStorage.getItem(INVITE_STORAGE_KEY);
-  if (t) sessionStorage.removeItem(INVITE_STORAGE_KEY);
-  return t;
-}
-
-// =====================
-// AUTH
-// =====================
-async function getUser() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) console.warn("getUser error:", error);
-  return data?.user ?? null;
-}
-
-async function signUp(email, password) {
-  clearMsg();
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
-  return data;
-}
-
-async function signIn(email, password) {
-  clearMsg();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data;
-}
-
-async function signOut() {
-  clearMsg();
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-}
-
-// =====================
-// DB LOGIC (מותאם לטבלאות שלך)
-// events: id, created_by, title, created_at
-// event_members: event_id, user_id, role, created_at
-// invites: id, event_id, token(text), created_by, accepted_by, accepted_at, created_at
-// =====================
-
-// ✅ התיקון הקריטי:
-// קודם בודקים אם המשתמש חבר באירוע כלשהו דרך event_members.
-// רק אם אין לו אירוע – יוצרים אחד חדש ומוסיפים אותו כ-owner.
-async function ensureMyEvent(userId) {
-  // 1) האם המשתמש כבר חבר באירוע?
-  const { data: mem, error: memErr } = await supabase
-    .from("event_members")
-    .select("event_id, role, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (memErr) throw memErr;
-
-  if (mem?.length) {
-    const eventId = mem[0].event_id;
-
-    // להביא את פרטי האירוע
-    const { data: ev, error: evErr } = await supabase
-      .from("events")
-      .select("id,title,created_at")
-      .eq("id", eventId)
-      .single();
-
-    if (evErr) throw evErr;
-    return ev;
-  }
-
-  // 2) אם אין חברות באף אירוע — יוצרים אירוע חדש
-  const { data: created, error: insErr } = await supabase
-    .from("events")
-    .insert([{ created_by: userId, title: "Our Wedding" }])
-    .select("id,title,created_at")
-    .single();
-
-  if (insErr) throw insErr;
-
-  // 3) מוסיפים את המשתמש כ-owner
-  const { error: memInsErr } = await supabase.from("event_members").insert([
-    {
-      event_id: created.id,
-      user_id: userId,
-      role: "owner",
-    },
-  ]);
-
-  if (memInsErr) throw memInsErr;
-
-  return created;
-}
-
-async function createInviteLink(eventId, userId) {
-  // 1) אם כבר יש הזמנה פתוחה לאירוע הזה — מחזירים אותה
-  const { data: existing, error: selErr } = await supabase
-    .from("invites")
-    .select("token")
-    .eq("event_id", eventId)
-    .is("accepted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (selErr) throw selErr;
-
-  if (existing?.length) {
-    const base = window.location.origin + window.location.pathname;
-    return `${base}?invite=${encodeURIComponent(existing[0].token)}`;
-  }
-
-  // 2) אחרת — יוצרים הזמנה חדשה
-  const token = crypto.randomUUID();
-
-  const { error: insErr } = await supabase.from("invites").insert([{
-    event_id: eventId,
-    token,
-    created_by: userId
-  }]);
-
-  if (insErr) throw insErr;
-
-  const base = window.location.origin + window.location.pathname;
-  return `${base}?invite=${encodeURIComponent(token)}`;
-}
-
-
-async function redeemInvite(token, userId) {
-  const { data: invite, error: selErr } = await supabase
-    .from("invites")
-    .select("id,event_id,accepted_at")
-    .eq("token", token)
-    .single();
-
-  if (selErr) throw selErr;
-  if (invite.accepted_at) throw new Error("הלינק הזה כבר נוצל.");
-
-  // להצטרף לאירוע (בלי כפילויות)
-  const { error: joinErr } = await supabase.from("event_members").upsert(
-    [
-      {
-        event_id: invite.event_id,
-        user_id: userId,
-        role: "partner",
-      },
-    ],
-    { onConflict: "event_id,user_id" }
-  );
-  if (joinErr) throw joinErr;
-
-  // לסמן שההזמנה נוצלה
-  const { error: updErr } = await supabase
-    .from("invites")
-    .update({ accepted_by: userId, accepted_at: new Date().toISOString() })
-    .eq("id", invite.id);
-
-  if (updErr) throw updErr;
-
-  return invite.event_id;
-}
-
-async function loadMembers(eventId) {
-  const { data, error } = await supabase
-    .from("event_members")
-    .select("user_id,role,created_at")
-    .eq("event_id", eventId)
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-
-  el("members").innerHTML =
-    (data || [])
-      .map(
-        (m) =>
-          `<div class="item"><div><b>${m.role}</b></div><div class="muted small">${m.user_id}</div></div>`
-      )
-      .join("") || `<div class="muted small">אין עדיין חברים</div>`;
-}
-
-// =====================
-// UI WIRING
-// =====================
-function wireUI() {
-  const btnSignUp = el("btnSignUp");
-  const btnSignIn = el("btnSignIn");
-  const btnSignOut = el("btnSignOut");
-  const btnCopy = el("btnCopy");
-
-  if (!btnSignUp || !btnSignIn) {
-    console.error("❌ Missing auth button IDs in HTML (btnSignUp/btnSignIn).");
-    return;
-  }
-
-  btnSignUp.onclick = async () => {
-    try {
-      const email = el("email").value.trim();
-      const password = el("password").value;
-      if (!email || !password) return showMsg("נא למלא אימייל וסיסמה", "err");
-
-      await signUp(email, password);
-      showMsg("נרשמת ✅ עכשיו התחברי (או אם נוצר סשן – תראי מעבר אוטומטי).", "ok");
-    } catch (e) {
-      showMsg(e.message || String(e), "err");
-      console.error(e);
+  setTimeout(() => {
+    if (heart.parentNode) {
+      heart.remove();
     }
-  };
+  }, (duration + 3) * 1000);
+}
 
-  btnSignIn.onclick = async () => {
-    try {
-      const email = el("email").value.trim();
-      const password = el("password").value;
-      if (!email || !password) return showMsg("נא למלא אימייל וסיסמה", "err");
+function startHeartRain() {
+  setInterval(createHeart, 500);
+}
 
-      await signIn(email, password);
-      showMsg("התחברת ✅", "ok");
-    } catch (e) {
-      showMsg(e.message || String(e), "err");
-      console.error(e);
-    }
-  };
+window.createHeart = createHeart; // נגיש גלובלית
+
+// ===============================
+// SPLASH SCREEN LOGIC
+// ===============================
+
+function initSplash() {
+  const continueBtn = document.getElementById('continueBtn');
+  const loginForm = document.getElementById('loginForm');
+  const appName = document.getElementById('appName');
+  const subtitle = document.getElementById('subtitle');
+
+  if (continueBtn) {
+    continueBtn.onclick = () => {
+      // כניסת השם למצב קומפקטי
+      appName.classList.add('compact');
+      subtitle.classList.add('compact');
+
+      // הסתרת הכפתור
+      continueBtn.style.opacity = '0';
+      continueBtn.style.transform = 'translateY(20px) scale(0.8)';
+
+      setTimeout(() => {
+        continueBtn.style.display = 'none';
+
+        // הצגת הטופס
+        loginForm.style.display = 'block';
+        setTimeout(() => {
+          loginForm.classList.add('show');
+          document.getElementById('email').focus();
+        }, 100);
+      }, 400);
+
+      // יצירת לבבות חגיגיים
+      for (let i = 0; i < 8; i++) {
+        setTimeout(createHeart, i * 100);
+      }
+    };
+  }
+}
+
+// ===============================
+// AUTH LOGIC
+// ===============================
+
+function initAuth() {
+  const btnSignUp = document.getElementById('btnSignUp');
+  const btnSignIn = document.getElementById('btnSignIn');
+
+  if (btnSignUp) {
+    btnSignUp.onclick = async () => {
+      try {
+        clearMsg();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!email || !password) {
+          return showMsg('נא למלא אימייל וסיסמה', 'err');
+        }
+
+        await signUp(email, password);
+        showMsg('נרשמת בהצלחה! ✅ עכשיו התחברי', 'ok');
+      } catch (e) {
+        showMsg(e.message || String(e), 'err');
+        console.error(e);
+      }
+    };
+  }
+
+  if (btnSignIn) {
+    btnSignIn.onclick = async () => {
+      try {
+        clearMsg();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!email || !password) {
+          return showMsg('נא למלא אימייל וסיסמה', 'err');
+        }
+
+        await signIn(email, password);
+        showMsg('התחברת! ✅', 'ok');
+
+        // יצירת לבבות חגיגיים
+        for (let i = 0; i < 15; i++) {
+          setTimeout(createHeart, i * 80);
+        }
+      } catch (e) {
+        showMsg(e.message || String(e), 'err');
+        console.error(e);
+      }
+    };
+  }
+}
+
+// ===============================
+// MAIN APP LOGIC
+// ===============================
+
+function initMainApp() {
+  const btnSignOut = document.getElementById('btnSignOut');
+  const btnInvitePartner = document.getElementById('btnInvitePartner');
 
   if (btnSignOut) {
     btnSignOut.onclick = async () => {
       try {
         await signOut();
-        showMsg("התנתקת", "ok");
+        showAuthScreen();
       } catch (e) {
-        showMsg(e.message || String(e), "err");
-        console.error(e);
+        alert('שגיאה: ' + e.message);
       }
     };
   }
 
-  if (btnCopy) {
-    btnCopy.onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(el("inviteLink").value);
-        showMsg("הועתק ✅", "ok");
-      } catch (e) {
-        showMsg("לא הצלחתי להעתיק. תעתיקי ידנית מהשדה.", "err");
-        console.error(e);
-      }
+  if (btnInvitePartner) {
+    btnInvitePartner.onclick = async () => {
+      showInviteModal();
     };
+  }
+
+  // Navigation items
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const view = item.dataset.view;
+      Router.navigateTo(view);
+    });
+  });
+
+  // Router
+  Router.init();
+}
+
+// ===============================
+// INVITE MODAL
+// ===============================
+
+async function showInviteModal() {
+  try {
+    const user = await getUser();
+    const event = await ensureMyEvent(user.id);
+    const link = await createInviteLink(event.id, user.id);
+
+    document.getElementById('inviteLink').value = link;
+    document.getElementById('inviteModal').classList.remove('hidden');
+
+    // לבבות!
+    for (let i = 0; i < 10; i++) {
+      setTimeout(createHeart, i * 100);
+    }
+  } catch (e) {
+    alert('שגיאה: ' + e.message);
   }
 }
 
-// =====================
-// APP STATE
-// =====================
+function initInviteModal() {
+  const btnCopyInvite = document.getElementById('btnCopyInvite');
+  const btnCloseModal = document.getElementById('btnCloseModal');
+  const modal = document.getElementById('inviteModal');
+
+  if (btnCopyInvite) {
+    btnCopyInvite.onclick = async () => {
+      try {
+        const link = document.getElementById('inviteLink').value;
+        await navigator.clipboard.writeText(link);
+        alert('הלינק הועתק! 💕');
+
+        // לבבות!
+        for (let i = 0; i < 8; i++) {
+          setTimeout(createHeart, i * 100);
+        }
+      } catch (e) {
+        alert('לא הצלחתי להעתיק. תעתיקי ידנית');
+      }
+    };
+  }
+
+  if (btnCloseModal) {
+    btnCloseModal.onclick = () => {
+      modal.classList.add('hidden');
+    };
+  }
+
+  // סגירה בלחיצה על הרקע
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.add('hidden');
+    }
+  });
+}
+
+// ===============================
+// SCREEN MANAGEMENT
+// ===============================
+
+function showAuthScreen() {
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('mainApp').classList.add('hidden');
+}
+
+function showMainApp() {
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+}
+
+// ===============================
+// APP STATE REFRESH
+// ===============================
+
 let refreshing = false;
 
 async function refreshApp() {
@@ -318,67 +256,77 @@ async function refreshApp() {
     const user = await getUser();
 
     if (!user) {
-      setLoggedInUI(false);
+      showAuthScreen();
       refreshing = false;
       return;
     }
 
-    setLoggedInUI(true);
-    el("userLine").textContent = user.email ? `אימייל: ${user.email}` : `User: ${user.id}`;
+    // המשתמש מחובר
+    showMainApp();
 
-    // אם יש הזמנה שמורה (מה-URL לפני login) – רידם עכשיו
+    // עדכון פרטי משתמש
+    const userEmail = document.getElementById('userEmail');
+    if (userEmail) {
+      userEmail.textContent = user.email || user.id.substring(0, 8);
+    }
+
+    // אם יש הזמנה ממתינה
     const pendingToken = popStashedInviteToken();
     if (pendingToken) {
       try {
         await redeemInvite(pendingToken, user.id);
-        showMsg("הצטרפת לאירוע דרך הזמנה ✅", "ok");
+        alert('הצטרפת לאירוע דרך הזמנה! 💕');
+
+        // לבבות חגיגיים!
+        for (let i = 0; i < 20; i++) {
+          setTimeout(createHeart, i * 80);
+        }
       } catch (e) {
-        showMsg(e.message || String(e), "err");
-        console.error(e);
+        alert('שגיאה בהזמנה: ' + e.message);
       }
     }
 
-    // ✅ עכשיו ensureMyEvent יבחר אירוע לפי event_members
-    const event = await ensureMyEvent(user.id);
-    el("eventLine").textContent = `Event ID: ${event.id} · ${event.title}`;
+    // וידוא שיש אירוע
+    await ensureMyEvent(user.id);
 
-    // כפתור הזמנה
-    const btnInvite = el("btnInvite");
-    btnInvite.onclick = async () => {
-      try {
-        const link = await createInviteLink(event.id, user.id);
-        el("inviteLink").classList.remove("hidden");
-        el("inviteLink").value = link;
-        el("btnCopy").classList.remove("hidden");
-        showMsg("לינק הזמנה נוצר ✅", "ok");
-      } catch (e) {
-        showMsg(e.message || String(e), "err");
-        console.error(e);
-      }
-    };
+    // טעינת המסך הנוכחי
+    Router.handleRoute();
 
-    await loadMembers(event.id);
   } catch (e) {
-    console.error("refreshApp fatal:", e);
-    showMsg(e.message || String(e), "err");
+    console.error('refreshApp error:', e);
+    alert('שגיאה: ' + e.message);
   } finally {
     refreshing = false;
   }
 }
 
-// =====================
-// BOOT (DOM safe) + INVITE stash
-// =====================
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ DOMContentLoaded - booting app.js");
+// ===============================
+// BOOT
+// ===============================
 
-  // אם נכנסו עם invite=... לפני login, נשמור אותו ואז נסיר מה-URL
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ Wendy App is starting...');
+
+  // התחלת לבבות
+  startHeartRain();
+  for (let i = 0; i < 10; i++) {
+    setTimeout(createHeart, i * 300);
+  }
+
+  // אתחול הזמנה מ-URL
   stashInviteTokenIfExists();
 
-  wireUI();
+  // אתחול UI
+  initSplash();
+  initAuth();
+  initMainApp();
+  initInviteModal();
+
+  // רענון מצב התחברות
   refreshApp();
 
-  supabase.auth.onAuthStateChange(() => {
+  // האזנה לשינויי התחברות
+  supabaseClient.auth.onAuthStateChange(() => {
     refreshApp();
   });
 });

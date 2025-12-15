@@ -3,72 +3,132 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wendy – Event</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Wendy – ניהול תקציב חתונה</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/budget.css" />
 </head>
 
 <body>
-  <div class="wrap">
-    <header class="card">
-      <h1>האפליקציה</h1>
-      <p class="muted">הרשמה / התחברות + הזמנה לבן/בת זוג לאותו אירוע</p>
-      <div id="msg" class="msg"></div>
-    </header>
+  <!-- לבבות רקע -->
+  <div id="heartsContainer"></div>
 
-    <section id="authCard" class="card">
-      <h2>התחברות</h2>
+  <div class="app-wrapper">
+    
+    <!-- ===== מסך התחברות (splash + auth) ===== -->
+    <div id="authScreen" class="screen">
+      <div class="splash-container">
+        <!-- השם wendy -->
+        <h1 class="app-name" id="appName">wendy</h1>
+        
+        <!-- כותרת משנה -->
+        <div class="subtitle" id="subtitle">ניהול תקציב חתונה בקסם</div>
+        
+        <!-- כפתור התחלה -->
+        <button class="continue-btn" id="continueBtn">בואו נתחיל</button>
 
-      <label>אימייל</label>
-      <input id="email" type="email" placeholder="name@email.com" />
+        <!-- טופס התחברות (מוסתר) -->
+        <div class="login-form" id="loginForm">
+          <div id="msg" class="msg"></div>
 
-      <label>סיסמה</label>
-      <input id="password" type="password" placeholder="••••••••" />
+          <div class="input-group">
+            <label class="input-label" for="email">אימייל:</label>
+            <input id="email" type="email" class="input-field" placeholder="your@email.com" />
+          </div>
 
-      <div class="row">
-        <button id="btnSignUp">הרשמה</button>
-        <button id="btnSignIn" class="primary">התחברות</button>
-      </div>
+          <div class="input-group">
+            <label class="input-label" for="password">סיסמה:</label>
+            <input id="password" type="password" class="input-field" placeholder="••••••••" />
+          </div>
 
-      <p class="muted small">
-        טיפ: כדי לבדוק הזמנה, פתחי חלון אינקוגניטו והתחברי עם משתמש אחר.
-      </p>
-    </section>
+          <div class="form-buttons">
+            <button id="btnSignIn" class="form-btn form-btn-primary">התחברות</button>
+            <button id="btnSignUp" class="form-btn form-btn-secondary">הרשמה</button>
+          </div>
 
-    <section id="appCard" class="card hidden">
-      <div class="row space">
-        <div>
-          <h2>מחוברת ✅</h2>
-          <div class="muted small" id="userLine"></div>
+          <p class="message-hint">
+            לאחר הרשמה תוכלו להזמין את בן/בת הזוג
+          </p>
         </div>
-        <button id="btnSignOut" class="ghost">התנתקות</button>
       </div>
+    </div>
 
-      <hr />
+    <!-- ===== האפליקציה הראשית ===== -->
+    <div id="mainApp" class="screen hidden">
+      
+      <!-- Header עליון -->
+      <header class="app-header">
+        <div class="header-content">
+          <div class="header-logo">wendy</div>
+          <div class="header-user">
+            <span id="userEmail"></span>
+            <button id="btnInvitePartner" class="btn-invite" title="שתף עם בן/בת זוג">💌</button>
+            <button id="btnSignOut" class="btn-signout">יציאה</button>
+          </div>
+        </div>
+      </header>
 
-      <h3>האירוע שלי</h3>
-      <div class="muted small" id="eventLine">טוען…</div>
+      <!-- Navigation -->
+      <nav class="main-nav">
+        <button class="nav-item active" data-view="budget">
+          <span class="nav-icon">💰</span>
+          <span class="nav-label">תקציב</span>
+        </button>
+        <button class="nav-item" data-view="suppliers">
+          <span class="nav-icon">🏢</span>
+          <span class="nav-label">ספקים</span>
+        </button>
+        <button class="nav-item" data-view="payments">
+          <span class="nav-icon">💳</span>
+          <span class="nav-label">תשלומים</span>
+        </button>
+        <button class="nav-item" data-view="gifts">
+          <span class="nav-icon">🎁</span>
+          <span class="nav-label">מתנות</span>
+        </button>
+        <button class="nav-item" data-view="tasks">
+          <span class="nav-icon">✅</span>
+          <span class="nav-label">משימות</span>
+        </button>
+        <button class="nav-item" data-view="dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">סיכום</span>
+        </button>
+      </nav>
 
-      <div class="row">
-        <button id="btnInvite" class="primary">צור לינק הזמנה לבן/בת זוג</button>
-        <button id="btnCopy" class="ghost hidden">העתקה</button>
-      </div>
+      <!-- תוכן ראשי -->
+      <main id="mainContent" class="main-content">
+        <div class="loading">טוען...</div>
+      </main>
 
-      <input id="inviteLink" class="hidden" readonly />
+    </div>
 
-      <hr />
-
-      <h3>חברי אירוע</h3>
-      <div id="members" class="list"></div>
-    </section>
   </div>
 
+  <!-- Modal להזמנת בן/בת זוג -->
+  <div id="inviteModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>הזמנה לבן/בת זוג 💕</h3>
+      <p>שלחי את הלינק הזה לבן/בת הזוג:</p>
+      <input id="inviteLink" class="invite-link-input" readonly />
+      <div class="modal-buttons">
+        <button id="btnCopyInvite" class="form-btn form-btn-primary">העתק</button>
+        <button id="btnCloseModal" class="form-btn form-btn-secondary">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <script src="js/supabase.js?v=2"></script>
-  <script src="js/ui.js?v=2"></script>
-  <script src="js/auth.js?v=2"></script>
-  <script src="js/events.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
-
+  
+  <script src="js/supabase.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/budget/budget-service.js"></script>
+  <script src="js/budget/budget-ui.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

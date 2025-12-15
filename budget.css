@@ -1,0 +1,348 @@
+/* css/budget.css */
+/* עיצוב מסך תקציב */
+
+.budget-view {
+  padding: 1rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* סיכום כללי */
+.budget-summary {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 25px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.budget-summary h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #2d1b2f;
+  font-weight: 600;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 15px;
+  padding: 1.5rem 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+}
+
+.summary-card .label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.summary-card .amount {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2d1b2f;
+}
+
+.summary-card.planned .amount {
+  color: #3b82f6;
+}
+
+.summary-card.actual .amount {
+  color: #ec4899;
+}
+
+.summary-card.remaining .amount {
+  color: #10b981;
+}
+
+/* קטגוריות */
+.budget-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.category-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.category-card:hover {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.category-icon {
+  font-size: 1.8rem;
+}
+
+.category-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2d1b2f;
+}
+
+.category-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  background: #f5f6fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.2rem;
+}
+
+.btn-icon:hover {
+  background: #ec4899;
+  color: white;
+  border-color: #ec4899;
+  transform: scale(1.1);
+}
+
+.btn-delete-category:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+/* סעיפים */
+.category-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.budget-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.budget-item:hover {
+  background: #f5f5f5;
+  border-color: #ec4899;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.1);
+}
+
+.budget-item.paid {
+  background: #ecfdf5;
+  border-color: #10b981;
+}
+
+.item-checkbox {
+  flex-shrink: 0;
+}
+
+.item-checkbox-input {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  accent-color: #ec4899;
+}
+
+.item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #2d1b2f;
+  margin-bottom: 0.25rem;
+}
+
+.budget-item.paid .item-name {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+.item-amounts {
+  font-size: 0.9rem;
+  color: #6b7280;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.item-amounts .planned {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.item-amounts .actual {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* סיכום קטגוריה */
+.category-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 2px solid #f3f4f6;
+  font-weight: 600;
+  color: #2d1b2f;
+}
+
+.category-total {
+  font-size: 1.1rem;
+  color: #ec4899;
+}
+
+/* כפתור הוספת קטגוריה */
+.btn-add-category {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
+}
+
+.btn-add-category:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(236, 72, 153, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .budget-view {
+    padding: 0.5rem;
+  }
+
+  .budget-summary {
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  .budget-summary h2 {
+    font-size: 1.5rem;
+  }
+
+  .summary-card .amount {
+    font-size: 1.4rem;
+  }
+
+  .category-card {
+    padding: 1rem;
+    border-radius: 15px;
+  }
+
+  .category-icon {
+    font-size: 1.5rem;
+  }
+
+  .category-name {
+    font-size: 1.1rem;
+  }
+
+  .budget-item {
+    padding: 0.75rem;
+  }
+}
+
+/* אנימציות */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.category-card {
+  animation: fadeInUp 0.5s ease;
+}
+
+.budget-item {
+  animation: fadeInUp 0.3s ease;
+}
+
+/* Loading state */
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #6b7280;
+}
+
+.error {
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 1rem;
+  border-radius: 10px;
+  text-align: center;
+  margin: 1rem;
+}
+
+.view-placeholder {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.5rem;
+  color: #9ca3af;
+}
