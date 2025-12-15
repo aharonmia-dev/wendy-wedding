@@ -154,20 +154,37 @@ async function ensureMyEvent(userId) {
 }
 
 async function createInviteLink(eventId, userId) {
-  const token = crypto.randomUUID(); // token הוא text אצלך
+  // 1) אם כבר יש הזמנה פתוחה לאירוע הזה — מחזירים אותה
+  const { data: existing, error: selErr } = await supabase
+    .from("invites")
+    .select("token")
+    .eq("event_id", eventId)
+    .is("accepted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
 
-  const { error } = await supabase.from("invites").insert([
-    {
-      event_id: eventId,
-      token,
-      created_by: userId,
-    },
-  ]);
-  if (error) throw error;
+  if (selErr) throw selErr;
+
+  if (existing?.length) {
+    const base = window.location.origin + window.location.pathname;
+    return `${base}?invite=${encodeURIComponent(existing[0].token)}`;
+  }
+
+  // 2) אחרת — יוצרים הזמנה חדשה
+  const token = crypto.randomUUID();
+
+  const { error: insErr } = await supabase.from("invites").insert([{
+    event_id: eventId,
+    token,
+    created_by: userId
+  }]);
+
+  if (insErr) throw insErr;
 
   const base = window.location.origin + window.location.pathname;
   return `${base}?invite=${encodeURIComponent(token)}`;
 }
+
 
 async function redeemInvite(token, userId) {
   const { data: invite, error: selErr } = await supabase
